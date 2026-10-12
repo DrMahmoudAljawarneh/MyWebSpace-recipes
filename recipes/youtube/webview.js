@@ -114,15 +114,24 @@ module.exports = Ferdium => {
   // Run at 100ms interval for near-instant response
   setInterval(handleAds, 100);
 
-  // Also hook player state changes on DOM mutations
-  const target = document.querySelector('#movie_player') || document.body;
-  if (target) {
-    const observer = new MutationObserver(() => {
-      handleAds();
-    });
-    observer.observe(target, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-  }
+  // Keyboard shortcut: Alt+P toggles Picture-in-Picture
+  document.addEventListener('keydown', event => {
+    if (event.altKey && (event.key === 'p' || event.key === 'P')) {
+      const video =
+        document.querySelector('video.html5-main-video') ||
+        document.querySelector('video');
+      if (video) {
+        event.preventDefault();
+        try {
+          if (document.pictureInPictureElement) {
+            document.exitPictureInPicture();
+          } else if (document.pictureInPictureEnabled) {
+            video.requestPictureInPicture();
+          }
+        } catch {
+          // Ignore PiP toggle error
+        }
+      }
+    }
+  });
 };
