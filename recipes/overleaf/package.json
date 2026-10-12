@@ -1,0 +1,11 @@
+{
+  "id": "overleaf",
+  "name": "Overleaf",
+  "version": "1.0.0",
+  "license": "MIT",
+  "repository": "https://github.com/ferdium/ferdium-recipes",
+  "config": {
+    "serviceURL": "https://www.overleaf.com/project",
+    "hasCustomUrl": true
+  }
+}

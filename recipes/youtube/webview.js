@@ -1,16 +1,128 @@
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj };
-}
-
-const _path = _interopRequireDefault(require('path'));
+const path = require('node:path');
 
 module.exports = Ferdium => {
-  // TODO: If your SNAME service has unread messages, uncomment these lines to implement the logic for updating the badges
-  // const getMessages = () => {
-  //   // TODO: Insert your notification-finding code here
-  //   Ferdium.setBadge(0, 0);
-  // };
-  // Ferdium.loop(getMessages);
+  // 1. Inject styling for banner and promotional ad hiding
+  Ferdium.injectCSS(path.join(__dirname, 'service.css'));
 
-  Ferdium.injectCSS(_path.default.join(__dirname, 'service.css'));
+  // 2. Notification badge updater
+  const getMessages = () => {
+    try {
+      const badge = document.querySelector(
+        '#notification-button ytd-notification-topbar-button-renderer .yt-spec-icon-badge-shape__badge',
+      );
+      if (badge) {
+        const count = Number.parseInt(badge.textContent.trim(), 10) || 0;
+        Ferdium.setBadge(count, 0);
+      } else {
+        Ferdium.setBadge(0, 0);
+      }
+    } catch {
+      Ferdium.setBadge(0, 0);
+    }
+  };
+  Ferdium.loop(getMessages);
+
+  // 3. Instant In-Player Ad Skipper
+  // When an ad appears, fast-forward it at max speed and click skip immediately
+  const skipSelectors = [
+    '.ytp-skip-ad-button',
+    '.ytp-ad-skip-button',
+    '.ytp-ad-skip-button-modern',
+    '.ytp-ad-skip-button-slot button',
+    'button.ytp-ad-skip-button-modern',
+    '.ytp-ad-overlay-close-button',
+  ];
+
+  const handleAds = () => {
+    const player = document.querySelector('#movie_player, .html5-video-player');
+    const isAdShowing =
+      player &&
+      (player.classList.contains('ad-showing') ||
+        player.classList.contains('ad-interrupting'));
+
+    if (isAdShowing) {
+      // Click any visible skip button right away
+      for (const selector of skipSelectors) {
+        const btn = document.querySelector(selector);
+        if (btn) {
+          try {
+            btn.click();
+          } catch {
+            // Ignore click error
+          }
+        }
+      }
+
+      // Find the active video element
+      const video =
+        document.querySelector('video.html5-main-video') ||
+        document.querySelector('video');
+      if (video) {
+        try {
+          video.muted = true;
+          // Set to 16x speed so any 5-second countdown finishes in < 0.3 seconds
+          video.playbackRate = 16;
+          // Jump right to the end of the ad segment
+          if (Number.isFinite(video.duration) && video.duration > 0.1) {
+            video.currentTime = video.duration - 0.05;
+          }
+        } catch {
+          // Ignore playback modification error
+        }
+      }
+    }
+
+    // Dismiss any anti-adblock modal
+    const dialog = document.querySelector(
+      'ytd-enforcement-message-view-model, tp-yt-paper-dialog:has(ytd-enforcement-message-view-model)',
+    );
+    if (dialog) {
+      const dismiss = dialog.querySelector(
+        '#dismiss-button, button[aria-label="Dismiss"], button[aria-label="Close"]',
+      );
+      if (dismiss) {
+        try {
+          dismiss.click();
+        } catch {
+          // Ignore dismissal error
+        }
+      } else {
+        try {
+          dialog.remove();
+          for (const b of document.querySelectorAll(
+            'tp-yt-iron-overlay-backdrop',
+          ))
+            b.remove();
+        } catch {
+          // Ignore element removal error
+        }
+      }
+
+      const video =
+        document.querySelector('video.html5-main-video') ||
+        document.querySelector('video');
+      if (video && video.paused) {
+        try {
+          video.play();
+        } catch {
+          // Ignore video play error
+        }
+      }
+    }
+  };
+
+  // Run at 100ms interval for near-instant response
+  setInterval(handleAds, 100);
+
+  // Also hook player state changes on DOM mutations
+  const target = document.querySelector('#movie_player') || document.body;
+  if (target) {
+    const observer = new MutationObserver(() => {
+      handleAds();
+    });
+    observer.observe(target, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+  }
 };

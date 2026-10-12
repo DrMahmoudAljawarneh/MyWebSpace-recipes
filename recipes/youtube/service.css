@@ -1,0 +1,59 @@
+/* Blazing Adblock for YouTube - Comprehensive Styling */
+
+/* Hide banner ads, promoted videos, search promotions, and feed ad slots */
+ytd-ad-slot-renderer,
+ytd-in-feed-ad-layout-renderer,
+ytd-banner-promo-renderer,
+ytd-statement-banner-renderer,
+ytd-rich-item-renderer:has(ytd-ad-slot-renderer),
+ytd-rich-item-renderer:has(ytd-in-feed-ad-layout-renderer),
+ytd-compact-promoted-video-renderer,
+ytd-promoted-sparkles-web-renderer,
+ytd-action-companion-ad-renderer,
+ytd-player-legacy-desktop-watch-ads-renderer,
+ytd-carousel-ad-renderer,
+ytd-ad-break-service-renderer,
+ytd-display-ad-renderer,
+ytd-video-masthead-ad-v3-renderer,
+yt-about-this-ad-renderer,
+#masthead-ad,
+#player-ads,
+.ytd-merch-shelf-renderer,
+yt-mealbar-promo-renderer,
+
+/* In-player ad containers, teasers, skip buttons, and banners */
+.ytp-ad-overlay-container,
+.ytp-ad-message-container,
+.ytp-ad-text,
+.ytp-ad-preview-container,
+.ytp-ad-action-interstitial,
+.ytp-ad-image-overlay,
+.ytp-ad-overlay-image,
+.ytp-ad-overlay-slot,
+.ytp-ad-player-overlay,
+.ytp-ad-player-overlay-layout,
+.ytp-ad-skip-button-container,
+.ytp-ad-preview-text,
+.ytp-skip-ad-button,
+.ytp-ad-skip-button,
+.ytp-ad-skip-button-modern,
+.ytp-ad-skip-button-slot,
+div#player-ads.style-scope.ytd-watch-flexy,
+div#panels.style-scope.ytd-watch-flexy div#rendering-content:has(ytd-ad-slot-renderer),
+
+/* YouTube anti-adblock enforcement dialogs & locks */
+ytd-enforcement-message-view-model,
+tp-yt-paper-dialog:has(ytd-enforcement-message-view-model),
+tp-yt-iron-overlay-backdrop:has(+ tp-yt-paper-dialog ytd-enforcement-message-view-model),
+tp-yt-iron-overlay-backdrop[opened]:has(+ * ytd-enforcement-message-view-model) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Ensure background scroll remains enabled when enforcement dialog attempts to freeze page */
+body.ytd-app,
+body.ytd-watch-flexy {
+  overflow: auto !important;
+}
