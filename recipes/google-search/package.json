@@ -1,0 +1,13 @@
+{
+  "id": "google-search",
+  "name": "Google",
+  "version": "1.0.0",
+  "license": "MIT",
+  "config": {
+    "serviceURL": "https://www.google.com/",
+    "hasCustomUrl": true,
+    "hasNotificationSound": false,
+    "hasDirectMessages": false,
+    "hasIndirectMessages": false
+  }
+}
