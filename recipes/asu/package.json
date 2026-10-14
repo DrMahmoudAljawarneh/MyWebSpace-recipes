@@ -1,9 +1,7 @@
 {
   "id": "asu",
   "name": "My ASU",
-  "version": "1.0.0",
-  "description": "Applied Science Private University Portal (my.asu.edu.jo)",
-  "author": "Antigravity",
+  "version": "1.0.1",
   "license": "MIT",
   "config": {
     "serviceURL": "https://my.asu.edu.jo/",

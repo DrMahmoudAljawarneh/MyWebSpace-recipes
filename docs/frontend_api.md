@@ -22,6 +22,9 @@
       - [Arguments](#arguments-6)
       - [Callback function arguments](#callback-function-arguments)
       - [Usage](#usage-6)
+    - [handlePresence(callback)](#handlepresencecallback)
+      - [Arguments](#arguments-presence)
+      - [Usage](#usage-presence)
     - [clearStorageData](#clearstoragedata)
       - [Arguments](#arguments-7)
       - [Usage](#usage-7)
@@ -265,6 +268,31 @@ Ferdium.handleDarkMode((isEnabled, helpers) => {
     helpers.removeDarkModeStyle();
   }
 })
+```
+
+### handlePresence(callback)
+
+Receives tray presence changes (`Status > Available / Do not disturb / Invisible`).
+Recipes opt in — unhandled services simply ignore the broadcast (global mute
+still applies). Map the status to your service's own presence UI/API.
+
+#### Arguments {#arguments-presence}
+
+1. `function` callback — invoked with `string` status:
+   `'available' | 'dnd' | 'invisible'`
+
+#### Usage {#usage-presence}
+
+```JavaScript
+Ferdium.handlePresence(status => {
+  // Example: click the service's own DND toggle when needed
+  const dndOn = document.querySelector('.my-dnd-toggle[aria-pressed="true"]');
+  if (status === 'available' && dndOn) {
+    dndOn.click();
+  } else if (status !== 'available' && !dndOn) {
+    document.querySelector('.my-dnd-toggle')?.click();
+  }
+});
 ```
 
 ### clearStorageData

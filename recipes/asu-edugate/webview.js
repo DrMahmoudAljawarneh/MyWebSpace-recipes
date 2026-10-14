@@ -11,7 +11,9 @@ module.exports = Ferdium => {
 
     // Fallback badge selectors for notification icons
     if (totalMessages === 0) {
-      const badge = document.querySelector('.popover-region-notifications .count-container, .badge.badge-danger');
+      const badge = document.querySelector(
+        '.popover-region-notifications .count-container, .badge.badge-danger',
+      );
       if (badge) {
         totalMessages = Ferdium.safeParseInt(badge.textContent);
       }

@@ -1,9 +1,7 @@
 {
   "id": "asu-edugate",
   "name": "ASU Edugate",
-  "version": "1.0.0",
-  "description": "Applied Science Private University Edugate LMS (edugate.asu.edu.jo)",
-  "author": "Antigravity",
+  "version": "1.0.1",
   "license": "MIT",
   "config": {
     "serviceURL": "https://edugate.asu.edu.jo/",
