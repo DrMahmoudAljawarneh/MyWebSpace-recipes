@@ -1320,6 +1320,15 @@
   },
   {
     "featured": false,
+    "id": "google-search",
+    "name": "Google",
+    "version": "1.0.0",
+    "icons": {
+      "svg": "https://cdn.jsdelivr.net/gh/ferdium/ferdium-recipes@main/recipes/google-search/icon.svg"
+    }
+  },
+  {
+    "featured": false,
     "id": "google-spreadsheets",
     "name": "Google Spreadsheets",
     "version": "2.3.2",
@@ -3976,7 +3985,7 @@
     "featured": false,
     "id": "youtube",
     "name": "YouTube",
-    "version": "1.3.4",
+    "version": "1.3.5",
     "icons": {
       "svg": "https://cdn.jsdelivr.net/gh/ferdium/ferdium-recipes@main/recipes/youtube/icon.svg"
     }
@@ -4078,19 +4087,6 @@
     "version": "1.4.1",
     "icons": {
       "svg": "https://cdn.jsdelivr.net/gh/ferdium/ferdium-recipes@main/recipes/zulip/icon.svg"
-    }
-  },
-  {
-    "id": "google-search",
-    "name": "Google",
-    "version": "1.0.0",
-    "license": "MIT",
-    "config": {
-      "serviceURL": "https://www.google.com/",
-      "hasCustomUrl": true,
-      "hasNotificationSound": false,
-      "hasDirectMessages": false,
-      "hasIndirectMessages": false
     }
   }
 ]

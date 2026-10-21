@@ -43,9 +43,18 @@ div#panels.style-scope.ytd-watch-flexy div#rendering-content:has(ytd-ad-slot-ren
 
 /* YouTube anti-adblock enforcement dialogs & locks */
 ytd-enforcement-message-view-model,
-tp-yt-paper-dialog:has(ytd-enforcement-message-view-model),
-tp-yt-iron-overlay-backdrop:has(+ tp-yt-paper-dialog ytd-enforcement-message-view-model),
-tp-yt-iron-overlay-backdrop[opened]:has(+ * ytd-enforcement-message-view-model) {
+tp-yt-paper-dialog:has(ytd-enforcement-message-view-model) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* The enforcement dialog lives inside ytd-popup-container, but YouTube adds
+   its full-screen backdrop as a direct child of <body>. They are not siblings,
+   so the old adjacent-sibling selectors never matched and the invisible
+   backdrop kept swallowing every click. */
+body:has(ytd-enforcement-message-view-model) > tp-yt-iron-overlay-backdrop[opened] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
