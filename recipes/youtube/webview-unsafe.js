@@ -5,33 +5,52 @@
   // --- 1. Strip Ad Placements from Player Responses ---
   // When adPlacements, playerAds, and adSlots are pruned from the player data,
   // the YouTube player never creates ad breaks on the timeline.
+  // Returns true when at least one ad field was removed.
   const pruneAds = obj => {
-    if (!obj || typeof obj !== 'object') return obj;
+    if (!obj || typeof obj !== 'object') return false;
+    let changed = false;
     try {
-      if (Array.isArray(obj.adPlacements)) delete obj.adPlacements;
-      if (Array.isArray(obj.playerAds)) delete obj.playerAds;
-      if (Array.isArray(obj.adSlots)) delete obj.adSlots;
+      if (Array.isArray(obj.adPlacements)) {
+        delete obj.adPlacements;
+        changed = true;
+      }
+      if (Array.isArray(obj.playerAds)) {
+        delete obj.playerAds;
+        changed = true;
+      }
+      if (Array.isArray(obj.adSlots)) {
+        delete obj.adSlots;
+        changed = true;
+      }
       if (obj.playerResponse) {
-        if (Array.isArray(obj.playerResponse.adPlacements))
+        if (Array.isArray(obj.playerResponse.adPlacements)) {
           delete obj.playerResponse.adPlacements;
-        if (Array.isArray(obj.playerResponse.playerAds))
+          changed = true;
+        }
+        if (Array.isArray(obj.playerResponse.playerAds)) {
           delete obj.playerResponse.playerAds;
-        if (Array.isArray(obj.playerResponse.adSlots))
+          changed = true;
+        }
+        if (Array.isArray(obj.playerResponse.adSlots)) {
           delete obj.playerResponse.adSlots;
+          changed = true;
+        }
       }
     } catch {
       // Ignore pruning errors
     }
-    return obj;
+    return changed;
   };
 
   // Intercept window.ytInitialPlayerResponse
   try {
-    let initialResponse = pruneAds(window.ytInitialPlayerResponse);
+    let initialResponse = window.ytInitialPlayerResponse;
+    pruneAds(initialResponse);
     Object.defineProperty(window, 'ytInitialPlayerResponse', {
       get: () => initialResponse,
       set: val => {
-        initialResponse = pruneAds(val);
+        pruneAds(val);
+        initialResponse = val;
       },
       configurable: true,
       enumerable: true,
@@ -40,11 +59,15 @@
     // Property already defined or non-configurable
   }
 
+  // Keep the untouched parser for our own fetch interception below. The page
+  // may replace/wrap JSON.parse, so using the global here would double-prune
+  // and make the wrapper believe no ads were removed.
+  const nativeJSONParse = JSON.parse;
+
   // Intercept JSON.parse to sanitize incoming player API responses
   try {
-    const origJSONParse = JSON.parse;
     JSON.parse = function (...args) {
-      const res = origJSONParse.apply(this, args);
+      const res = nativeJSONParse.apply(this, args);
       if (
         res &&
         typeof res === 'object' &&
@@ -77,12 +100,24 @@
         if (url.includes('/youtubei/v1/player')) {
           const clone = response.clone();
           const text = await clone.text();
-          let data = JSON.parse(text);
-          data = pruneAds(data);
+          let data;
+          try {
+            data = nativeJSONParse(text);
+          } catch {
+            return response;
+          }
+          // Only replace the body when something was actually removed.
+          // Re-wrapping every player response can corrupt compressed payloads.
+          if (!pruneAds(data)) return response;
+
+          const headers = new Headers(response.headers);
+          headers.delete('content-length');
+          headers.delete('content-encoding');
+          headers.delete('transfer-encoding');
           return new Response(JSON.stringify(data), {
             status: response.status,
             statusText: response.statusText,
-            headers: response.headers,
+            headers,
           });
         }
       } catch {
@@ -108,6 +143,21 @@
   let userPlaybackRate = 1;
   let userVolume = 1;
   let wasMutedBeforeAd = false;
+  let resumedForEnforcementDialog = null;
+
+  const isVisible = element => {
+    if (!element || !element.isConnected) return false;
+    const style = getComputedStyle(element);
+    if (
+      style.display === 'none' ||
+      style.visibility === 'hidden' ||
+      Number.parseFloat(style.opacity) === 0
+    ) {
+      return false;
+    }
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  };
 
   const handleAds = () => {
     const player = document.querySelector('#movie_player, .html5-video-player');
@@ -161,8 +211,11 @@
         try {
           video.muted = true;
           video.playbackRate = 16;
-          if (video.paused) {
-            video.play();
+          if (video.paused && !video.ended) {
+            const playPromise = video.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+              playPromise.catch(() => {});
+            }
           }
         } catch {
           // Ignore playback modification error
@@ -184,39 +237,55 @@
       }
     }
 
-    // Dismiss any anti-adblock warning modal
+    // Dismiss any anti-adblock warning modal. The modal may remain in the DOM
+    // after being hidden; never let that stale node resume a finished video.
     const dialog = document.querySelector(
       'ytd-enforcement-message-view-model, tp-yt-paper-dialog:has(ytd-enforcement-message-view-model)',
     );
     if (dialog) {
-      const dismiss = dialog.querySelector(
-        '#dismiss-button, button[aria-label="Dismiss"], button[aria-label="Close"]',
-      );
-      if (dismiss) {
-        try {
-          dismiss.click();
-        } catch {
-          // Ignore dismissal error
-        }
-      } else {
-        try {
-          dialog.remove();
-          for (const b of document.querySelectorAll(
-            'tp-yt-iron-overlay-backdrop',
-          )) {
-            b.remove();
+      const container = dialog.closest('tp-yt-paper-dialog') || dialog;
+      if (isVisible(container)) {
+        const dismiss = dialog.querySelector(
+          '#dismiss-button button, button[aria-label="Close"], button[aria-label="Dismiss"], #dismiss-button',
+        );
+        if (dismiss) {
+          try {
+            dismiss.click();
+          } catch {
+            // Ignore dismissal error
           }
-        } catch {
-          // Ignore element removal error
+        } else {
+          try {
+            container.remove();
+          } catch {
+            // Ignore element removal error
+          }
         }
-      }
-      if (video && video.paused) {
-        try {
-          video.play();
-        } catch {
-          // Ignore play error
+
+        // Resume playback only once per visible enforcement dialog, and never
+        // after the media element has reached the end of the video.
+        if (
+          resumedForEnforcementDialog !== dialog &&
+          video &&
+          video.paused &&
+          !video.ended &&
+          !(player && player.classList.contains('ended'))
+        ) {
+          resumedForEnforcementDialog = dialog;
+          try {
+            const playPromise = video.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+              playPromise.catch(() => {});
+            }
+          } catch {
+            // Ignore play error
+          }
         }
+      } else if (resumedForEnforcementDialog === dialog) {
+        resumedForEnforcementDialog = null;
       }
+    } else {
+      resumedForEnforcementDialog = null;
     }
   };
 
