@@ -237,33 +237,36 @@
       }
     }
 
-    // Dismiss any anti-adblock warning modal. The modal may remain in the DOM
-    // after being hidden; never let that stale node resume a finished video.
+    // Dismiss any anti-adblock warning modal. YouTube's dialog uses the
+    // Polymer `opened` property, not the `opened` attribute, and our CSS hides
+    // it before the JavaScript runs. Checking computed visibility alone would
+    // therefore never recognize an active dialog.
     const dialog = document.querySelector(
       'ytd-enforcement-message-view-model, tp-yt-paper-dialog:has(ytd-enforcement-message-view-model)',
     );
     if (dialog) {
       const container = dialog.closest('tp-yt-paper-dialog') || dialog;
-      if (isVisible(container)) {
-        const dismiss = dialog.querySelector(
-          '#dismiss-button button, button[aria-label="Close"], button[aria-label="Dismiss"], #dismiss-button',
-        );
-        if (dismiss) {
-          try {
-            dismiss.click();
-          } catch {
-            // Ignore dismissal error
+      const isOpen =
+        container.opened === true ||
+        container.hasAttribute('opened') ||
+        isVisible(container);
+
+      if (isOpen) {
+        // Remove the hidden dialog and its backdrop. Clicking the close button
+        // does not work while the dialog is hidden by our CSS.
+        try {
+          container.remove();
+          for (const backdrop of document.querySelectorAll(
+            'tp-yt-iron-overlay-backdrop[opened]',
+          )) {
+            backdrop.remove();
           }
-        } else {
-          try {
-            container.remove();
-          } catch {
-            // Ignore element removal error
-          }
+        } catch {
+          // Ignore element removal error
         }
 
-        // Resume playback only once per visible enforcement dialog, and never
-        // after the media element has reached the end of the video.
+        // Resume playback only once per enforcement dialog, and never after
+        // the media element has reached the end of the video.
         if (
           resumedForEnforcementDialog !== dialog &&
           video &&
